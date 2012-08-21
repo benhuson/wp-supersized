@@ -897,13 +897,14 @@ include('admin_page.php');
         else $full_background_url = '';
         
         $full_output ='';
-        $images = get_children(array( // gets images attached to the post/page
-		'post_parent'    => $postid,
-		'post_type'      => 'attachment',
-		'numberposts'    => -1, // show all
-		'post_status'    => null,
-		'post_mime_type' => 'image',
-                                ));
+        $args = array( // Gets images attached to the post/page
+			'post_parent'    => $postid,
+			'post_type'      => 'attachment',
+			'numberposts'    => -1, // show all
+			'post_status'    => null,
+			'post_mime_type' => 'image',
+		);
+        $images = get_children( apply_filters( 'wp_supersized_images_from_wpgallery_args', $args, $postid ) );
 	if($images) {
                 global $totalSlides;
                 $totalSlides = count($images);
