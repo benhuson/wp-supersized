@@ -524,7 +524,12 @@ include('admin_page.php');
         public static function slides_list()
 	{
 	$options = get_option('wp-supersized_options');
-        
+
+		// Custom Slides Filter
+		$custom_slides_list = apply_filters( 'wp_supersized_custom_slides_list', '' );
+		if ( ! empty( $custom_slides_list ) )
+			return;
+
         if (substr($options['default_dir'],0,11) != 'ngg-gallery_') 
             $full_dir = self::get_custom_dir($options['default_dir']); // if no NextGEN gallery has been selected as default, then go through the normal routine
         else
