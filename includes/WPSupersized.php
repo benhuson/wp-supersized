@@ -152,9 +152,10 @@ include('admin_page.php');
                     return true;                    
         }
 
-       	return(($where['show_on_page']['tag_archive'] && is_tag()) || ($where['show_on_page']['category_archive'] && is_category()) || ($where['show_on_page']['sticky_post'] && is_sticky()) || ($where['show_on_page']['allposts'] && is_single()) || ($where['show_on_page']['allpages'] && is_page()) || ($where['show_on_page']['homepage'] && is_home()) || ($where['show_on_page']['front_only'] && is_front_page()) || ($where['show_on_page']['404_page'] && is_404()) || ($where['show_on_page']['search_results'] && is_search()) || ($where['show_on_page']['date_archive'] && is_date()) || ($where['show_on_page']['any_archive'] && is_archive())) ; 
+		if ( ( $where['show_on_page']['tag_archive'] && is_tag() ) || ( $where['show_on_page']['category_archive'] && is_category() ) || ( $where['show_on_page']['sticky_post'] && is_sticky() ) || ( $where['show_on_page']['allposts'] && is_single() ) || ( $where['show_on_page']['allpages'] && is_page() ) || ( $where['show_on_page']['homepage'] && is_home() ) || ( $where['show_on_page']['front_only'] && is_front_page() ) || ( $where['show_on_page']['404_page'] && is_404() ) || ( $where['show_on_page']['search_results'] && is_search() ) || ( $where['show_on_page']['date_archive'] && is_date() ) || ( $where['show_on_page']['any_archive'] && is_archive() ) ) {
+			return true;
 
-        
+		return apply_filters( 'wp_supersized_is_chosen_page', false );
 }
 
 	/*
