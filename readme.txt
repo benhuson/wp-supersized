@@ -1,32 +1,35 @@
 === WP Supersized ===
 Contributors: worldinmyeyes
 Donate link: http://www.worldinmyeyes.be/donate/
-Tags: supersized, background, full screen, slideshow, flickr, media gallery, NextGEN gallery
+Tags: Supersized, background, full screen, slideshow, flickr, Picasa, Smugmug, media gallery, NextGEN gallery
 Requires at least: 3.1
-Tested up to: 3.4b1
-Stable tag: 3.0.2
+Tested up to: 3.5
+Stable tag: 3.1.5
+License: GPLv2
 
-Displays a full screen background slideshow in any page/post. Choose images from the WP Media Gallery, NextGEN Gallery, a folder, or an XML file.
+Full screen background slideshow in any page/post, with images from WP Media Gallery, NextGEN Gallery, Flickr, Picasa, Smugmug, folder, or XML file
 
 == Description ==
 
-WP Supersized enables the easy integration of the Supersized jquery extension in the pages/posts of your choice.
+WP Supersized allows you to display a resizable full screen background slideshow on pages/posts of your choice.
 After activation you will find a new WP Supersized section in your Settings where you can manage the plugin options.
-A WP Supersized panel will also be available in the post/page editor to select the source of images used by the plugin.
+A WP Supersized panel will also be available in the post/page editor to select the source of images used by the plugin individually for the current post/page.
 
-*Users may use images from NextGEN Gallery, the Wordpress Media Gallery, your own choice of directory within the wp-content folder, or a list of slides defined in an xml file (for advanded users).*
+*Users may use images from NextGEN Gallery, the Wordpress Media Gallery, Flickr, Picasa, Smugmug, their own choice of directory within the wp-content folder, or a list of slides defined in an xml file (for advanded users).*
 
-I am not the developer of the Supersized jquery extension itself, [Supersized](http://buildinternet.com/project/supersized/ "Supersized webpage") was written by [Sam Dunn](http://vivalasam.com/ "Sam Dunn"). My plugin only integrates it into your theme and gives you easy access to many options for displaying this resizeable slideshow background where you want on your website or blog.
+WP Supersized integrates the Supersized jquery extension in the pages/posts of your choice. I am not the developer of the original Supersized jquery extension itself, [Supersized](http://buildinternet.com/project/supersized/ "Supersized webpage") was written by [Sam Dunn](http://vivalasam.com/ "Sam Dunn"). My plugin only integrates it into your theme and gives you easy access to many options for displaying this resizeable slideshow background where you want on your website or blog.
 
 So, what exactly does WP Supersized do?
 
 *   Cycles Images/backgrounds via slideshow with transitions and preloading (use it as background or as slideshow)
 *   Resizes images to fill browser while maintaining image dimension ratio
 *   Navigation controls with keyboard support
-*   Integration with NextGEN Gallery and with the Wordpress Media Gallery - choose images from galleries or attached to post/page
+*   Integration with NextGEN Gallery and with the Wordpress Media Gallery - choose images from NextGEN galleries or attached to post/page
 *   Integration with Flickr - pull photos by user, set, tag, or group
+*   Integration with Picasa - pull photos by album, user,or tag
+*   Integration with Smugmug - pull photos by keyword, user, gallery, category
 *   Accepts jpg, gif, and png images
-*   Define your own specific images source for each page/post separately (also options for advanced users, using an XML file)
+*   Simple selection of your images source for each page/post separately (also options for advanced users, using an XML file)
 *   HTML and links can be used within the images captions (when using WP Media Gallery, NextGEN Gallery, or an XML file as source of images).
 
 You can see an example of Supersized in use in a Wordpress page on the [WP Supersized page](http://www.worldinmyeyes.be/2265/ "WP Supersized page") or on my [About page](http://www.worldinmyeyes.be/about-2/ "About page").
@@ -37,6 +40,7 @@ WP Supersized allows you to display Supersized on the pages/posts that you want 
 = Options =
 
 There is a number of available options, shown below with their default values. *Not every option is functional in the Single image mode*.
+WP Supersized also adds an additional option tab in the page/post editor for easy selection of the source of images for each post/page individually. A source selected on an individual page/post will override the general options choice. When no value has been set for these options yet, they use the general options.
 
 *Functionality*
 
@@ -176,12 +180,12 @@ Select here the slides directory that will be used by default (default is supers
 The images from the selected directory will be displayed by Supersized unless you use a custom directory in each post/page.
 Please put your images folders (default or custom) for Supersized in your `wp-content` directory. You may create folders within folders, e.g. `/wp-content/supersized-slides/slidesforpost###/`.
 *If you have been using the `SupersizedDir` custom field in your pages/posts, it is still used but is now shown and selected with a selector. You do not need to fill the custom field yourself anymore.*
-WP Supersized will look first for a custom directory that you would have set up for the current page/post. If not found, it will then use the default directory selected here (do not forget to create it and fill it with images!). If none of these can be found, the default Supersized images will be shown.
+WP Supersized will look first for a custom images source that you would have set up for the current page/post. If not found, it will then use the default directory selected here (do not forget to create it and fill it with images!). If none of these can be found, the default Supersized images will be shown.
 
 * *Debugging mode on/off*
 
 When on, WP Supersized will generate comments in the source of the web page (in the slides list) with some variables and arrays values, useful to find out the origin of file path problems. If you have problems with displaying your images, send me these comments from the source of the page and I will be able to help you more easily.
-This is not necessary for normal operation. Use only if you have trouble with displaying your images as it will output its results to the screen.
+This is not necessary for normal operation. Use only if you have trouble with displaying your images.
 (default is off)
 
 *Size and position*
@@ -319,9 +323,112 @@ Between 1-500 (default is 100).
 The image size to pull - t,s,m,z,b (smallest to largest, default is z).
 Details on [flickr.com](http://www.flickr.com/services/api/misc.urls.html "flickr.com")
 
+* *Sort Images By*
+
+Sort images by date posted, date taken, or interestingness (Default is Date posted).
+
+* *Sort Direction*
+
+Select the sort direction (Default is Descending).
+
 * *Flickr API key*
 
 You need this in order for this to work. You need to get your own at [flickr.com](http://www.flickr.com/services/apps/create/ "flickr.com")
+
+*Picasa*
+
+**The following options are specific to the Picasa mode.**
+
+* *Picasa Source*
+
+Tells Supersized which of the options to pull the images from.
+
+Album : pulls images from a Picasa album (default).
+
+User: pulls images from a user.
+
+Tags: pulls images by tag.
+
+* *Album*
+
+You must provide the ID of the desired album. It can be found in the URL of the link to this album.
+
+* *User*
+
+You must provide the ID number of the desired user (either you Picasa user name or the long number in the URL to your profile).
+
+* *Tags*
+
+You must provide the desired tag(s). You may combine several tags (comma- or "+"-separated = AND, "|"-separated = OR).
+
+* *How many pictures to pull*
+
+Between 1-500 (default is 100).
+
+* *Picasa Image Size*
+
+The image size to pull - 512, 640, 720, 800, 1024, 1280, 1440, 1600. The Picasa API will return the largest size available if your selection is larger than the original.
+
+* *Sort Images By*
+
+Sort images by date published or date updated (none uses default Picasa order) (Default is Date published).
+
+* *Sort Direction*
+
+Select the sort direction (Default is Descending).
+
+* *Picasa Author key*
+
+You need this in order for private albums to work. It can be found in the URL of the link to a private album (each album has a different author key)
+
+*Smugmug*
+
+**The following options are specific to the Smugmug mode.**
+
+* *Smugmug Source*
+
+Tells Supersized which of the options to pull the images from.
+
+Keyword: pulls images by keyword.
+
+User: pulls images from a user.
+
+Gallery: pulls images from a gallery.
+
+Category: pulls images by category.
+
+* *Keyword*
+
+Comma-separated Smugmug keywords (they are combined).
+
+* *User*
+
+You must provide the nickname of the desired user. You may combine it with keyword(s).
+
+* *Gallery*
+
+You must provide the ID of the desired gallery
+
+* *Category*
+
+You must provide the desired category.
+
+* *How many pictures to pull*
+
+Between 1-100 (default is 100). This is currently the maximum allowed by the Google Feed API used by the plugin to get the images.
+
+* *Smugmug Size*
+
+The image size to pull - Tiny, Thumb, Small, Medium, Large, XLarge, X2Large, X3Large, Original.
+Details on [help.smugmug.com](http://help.smugmug.com/customer/portal/articles/93250 "smugmug.com")
+
+* *Sort Images By*
+
+Sort images by date published or date updated (none uses default Smugmug order) (Default is Date posted).
+
+* *Sort Direction*
+
+Select the sort direction (Default is Descending).
 
 * *Update*
 
@@ -337,10 +444,9 @@ To reset all WP Supersized options.
 1. Download the WP Supersized zip file and unzip it.
 2. Upload the WP Supersized folder to your `/wp-content/plugins/` directory. Alternatively, use the Wordpress plugin install in `Plugins >> Add New >> Upload` to upload and install the zip file.
 3. Activate the plugin through the `Plugins` menu in WordPress.
-4. Create a `supersized-slides` directory within your wp-content directory. This is the default folder where images should be uploaded for WP Supersized.
-5. Upload image files (jpg) in your `/wp-content/supersized-slides/` directory. If you don't, demo slides from the original Supersized release will be used.
-6. If you prefer not to use a folder as described in steps 4 and 5, you may use the images attached to a post/page with the Wordpress Media Gallery or NextGEN Gallery instead.
-7. Go to the `Settings >> WP Supersized` menu and modify the options as desired. The source of images can also be defined independently in each post/page.
+4. If you wish to use your own folder containing images, create a `supersized-slides` directory within your wp-content directory. This will be the default folder where images should be uploaded for WP Supersized.
+5. If you prefer not to use a folder as described in steps 4, you may use the images attached to a post/page with the Wordpress Media Gallery or NextGEN Gallery, or images from Flickr, Picasa, or Smugmug instead.
+7. Go to the `Settings >> WP Supersized` menu and modify the options as desired. The source of images can also be defined independently for each post/page in the post/page editor.
 
 == Frequently Asked Questions ==
 
@@ -452,6 +558,10 @@ According to what you want to do, you can then give it a value that is the name 
 5. General options/Size and position - Choose how the images will be displayed.
 6. General options/Components - Fine-tune the navigation controls for Supersized.
 7. General options/Flickr - Enter here the details of your Flickr account and the choice of Flickr images.
+8. General options/Picasa - Enter here the details of your Picasa account and the choice of Picasa images.
+9. General options/Smugmug - Enter here the details of your Smugmug account and the choice of Smugmug images.
+10. Example of selection of images in the post editor (individual selection for each post/page).
+
 
 == Other notes ==
 
@@ -466,6 +576,60 @@ Special thanks to Joke and Sandro who helped me finding the solution to a bug pr
 Thanks to the generous donators who encourage me to develop my plugin further (and start working on new ones!) by [making a donation](http://www.worldinmyeyes.be/donate/ "Donate").
 
 == Changelog ==
+
+= 3.1.5 =
+
+* Added the option Always fill screen in Size and position, to allow the image to always fill the screen (image is cropped). This possibility had disappeared when the new Size and position button was introduced in v.3.1.2.
+
+= 3.1.4 =
+
+* Bug fix (tested): corrected several errors in the automatic options conversion routine that were still preventing the plugin to work correctly.
+This bug fix will only work on new updates from versions before v.3.1.2.
+If you were faced with problems when updating to v.3.1.2 or v.3.1.3, the solution is to take a note of your current options and then to reset the options and enter your own options again. Sorry for the inconvenience.
+
+= 3.1.3 =
+
+* Bug fix: added more checks in the automatic options conversion routine to avoid the issue of losing the options when updating. This bug fix will only work on new updates from versions earlier than v.3.1.2.
+If you were faced with the problem when updating to v.3.1.2, the solution is to take a note of your current options and then to reset the options and enter your own options again. Sorry for the inconvenience.
+
+= 3.1.2 =
+
+* Bug fix: fixed a small syntax error in jquery code used by the plugin that was causing problems with the display of the backend metabox in WP 3.5.
+* Bug fix: the options selected through an xml file should now work as advertised.
+* Bug fix: the thumb tray will now appear only when the corresponding option (Thumbnail tray) is selected, even if the option for showing the tray at startup is selected.
+* Bug fix: modified the Flickr, Picasa, and Smugmug code used by the plugin to avoid the disappearance of the navigation arrows when a long caption is displayed.
+* Bug fix: the Fit always option should now work also with Flickr, Picasa, and Smugmug images.
+* Modified the Size and position option: Fit always, Fit portrait, and Fit landscape are now mutually exclusive. There was no point in selecting both Fit portrait and Fit landscape at the same time to do what Fit always does anyway.
+* Added support for displaying the Supersized source meta box in custom post types (thanks to [JonasVorwerk](http://wordpress.org/support/profile/jonasvorwerk "JonasVorwerk")).
+* Added enhanced jquery animate to remove flickering on iPad and iPhone ([jquery.animate-enhanced plugin](http://playground.benbarnett.net/jquery-animate-enhanced/ "jquery.animate-enhanced plugin")).
+* Added more details for the use of some options in the admin.
+* Added an automatic option updater to set the right format for the on/off options.
+* Updated the example.xml file with the missing options for Picasa, and Smugmug.
+* Cleaned up some code.
+* Tested up to WP 3.5.
+
+= 3.1.1 =
+
+* Bug fix: moved a few lines in their correct position in the code. This small mistake was generating warnings about invalid arguments passed to the implode() function.
+* Bug fix: added a few additional checks in the admin to avoid warnings about invalid arguments passed to the implode() function.
+* Bug fix: rewrote the install() function to remove errors introduced in version 3.1.
+* Eliminated a few php notices (undefined index).
+* Cleaned up some html in the admin of the plugin.
+
+= 3.1 =
+
+* Added support for the use of images from Picasa and Smugmug.
+* Added the ability to sort Flickr images (thanks to [mendhak](https://github.com/mendhak "mendhak")).
+* Now with easy individual selection of source (WP Media Gallery, NextGen Gallery, Flickr, Picasa, Smugmug, custom dir, or XML file) for each page/post.
+* Bug fix: Removed a trailing slash in the function listing the folders and files. This was causing an open_basedir restriction error in php versions older than 5.2.2.
+* Bug fix: The image source selected within a post/page is now used even when the Flickr or Single modes are defined as default in the plugin options.
+* Bug fix: The debugging mode will not break the page anymore. Debugging info now appears correctly as a comment in the page source.
+* Bug fix for square photos in Flickr module (thanks to [Matt Richardson](https://github.com/matt-richardson "Matt Richardson")).
+* Added a jquery.easing.compatibility.js file to help solving issues that appeared for some users (thanks to [Twanneman](http://twanneman.nl/) "Twanneman").
+* Improved: Navigation arrows will not be displayed anymore when there is only one image to show. Thanks to [Artem](http://wordpress.org/support/profile/artemkolotilkin "Artem") and [Glark](http://wordpress.org/support/profile/glark "Glark") for noticing this issue and hacking a solution while I was updating the plugin.
+* Modified the plugin files structure to improve modularity.
+* Cleaned up the code of the install function.
+* Updated the readme.
 
 = 3.0.2 =
 
@@ -565,4 +729,5 @@ Thanks to the generous donators who encourage me to develop my plugin further (a
 
 == Upgrade Notice ==
 
-NextGEN Galleries are now supported as source of images. Post/page editor screen now contains a WP Supersized panel for the selection of images source for WP Supersized.
+Bug fix (working this time!) to avoid the loss of options experienced by users who updated to v.3.1.2 and v.3.1.3. This bug fix will only work on new updates from versions before v.3.1.2.
+If you were faced with the problem when updating to v.3.1.2 or v.3.1.3, the solution is to take a note of your current options and then to reset the options and enter your own options again. Sorry for the inconvenience.

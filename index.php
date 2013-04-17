@@ -2,7 +2,7 @@
 /* 
 Plugin Name: WP-Supersized
 Plugin URI: http://www.worldinmyeyes.be/2265/wp-supersized-wordpress-plugin/
-Version: 3.0.2
+Version: 3.1.5
 Author: <a href="http://www.worldinmyeyes.be/about/">Benoit De Boeck</a>
 Description: Installs the full screen slideshow background <a href="http://www.buildinternet.com/project/supersized/">Supersized 3.2.7</a> in your current theme. Many options are available.
  
@@ -24,6 +24,8 @@ Copyright 2012  Benoit De Boeck  (email : ben [a t ] worldinmyeyes DOT be)
 
 */
 
+include_once('includes/PHPVersionTest.php');
+include_once('includes/CustomMetabox.php');
 include_once('includes/WPSupersized.php');
 
 register_activation_hook( __FILE__, 'WPSupersized::install' );

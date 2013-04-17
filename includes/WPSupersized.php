@@ -12,14 +12,19 @@ if ( !class_exists('WPSupersized') ):
 class WPSupersized
 {
 	const plugin_name = 'WP Supersized';
-        const plugin_version = '3.0.2';
+        const plugin_version = '3.1.5';
 	const min_php_version = '5.2';
 	const min_wordpress_version = '3.1'; 
 	const supersized_theme_name = 'shutter'; // should eventually be replaced by an option
 	const supersized_version = '3.2.7';
 	const supersized_core_version = '3.2.1';
-	const supersized_flickr_version = '1.1.2';
-        const supersized_jquery_easing_version = '2.0';
+	const supersized_flickr_version = '1.1.2.mod';
+	const supersized_picasa_version = '1.0.3';
+	const supersized_smugmug_version = '1.0.2';
+        const supersized_date_version = '1.0.a1';
+        const supersized_jquery_easing_version = '1.3';
+        const supersized_jquery_easing_compatibility_version = '1.0';
+        const supersized_jquery_animate_enhanced_version = '0.75';
         
         
    /*
@@ -36,13 +41,18 @@ class WPSupersized
 		wp_register_style('supersized_core', content_url().'/plugins/wp-supersized/css/supersized.core.css');
                 wp_register_style('supersized_flickr', content_url().'/plugins/wp-supersized/css/supersized.flickr.css'); // for the flickr version 1.1.2, old css still needed
 		wp_register_style('supersized_theme_css', content_url().'/plugins/wp-supersized/theme/supersized.'.self::supersized_theme_name.'.css');
-		wp_register_script('WPSupersized_standard', content_url().'/plugins/wp-supersized/js/supersized.'.self::supersized_version.'.min.js',array('jquery'),self::supersized_version);
+                wp_register_style('supersized_admin_jquery_ui','http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/themes/smoothness/jquery-ui.css'); // jQuery UI theme
+                wp_register_script('WPSupersized_standard', content_url().'/plugins/wp-supersized/js/supersized.'.self::supersized_version.'.min.js',array('jquery'),self::supersized_version);
 		wp_register_script('WPSupersized_core', content_url().'/plugins/wp-supersized/js/supersized.core.'.self::supersized_core_version.'.min.js',array('jquery'),self::supersized_core_version);
 		wp_register_script('WPSupersized_flickr', content_url().'/plugins/wp-supersized/js/supersized.flickr.'.self::supersized_flickr_version.'.js',array('jquery'),self::supersized_flickr_version);
+		wp_register_script('WPSupersized_picasa', content_url().'/plugins/wp-supersized/js/supersized.picasa.'.self::supersized_picasa_version.'.js',array('jquery'),self::supersized_picasa_version);
+		wp_register_script('WPSupersized_smugmug', content_url().'/plugins/wp-supersized/js/supersized.smugmug.'.self::supersized_smugmug_version.'.js',array('jquery'),self::supersized_smugmug_version);
+		wp_register_script('WPSupersized_date', content_url().'/plugins/wp-supersized/js/date.'.self::supersized_date_version.'.js',array('jquery'),self::supersized_date_version);
 		wp_register_script('WPSupersized_theme_js', content_url().'/plugins/wp-supersized/theme/supersized.'.self::supersized_theme_name.'.min.js',array('jquery'));
 		wp_register_script('WPSupersized_theme_visible_tray_js', content_url().'/plugins/wp-supersized/theme/supersized.'.self::supersized_theme_name.'.visible_tray.min.js',array('jquery'));
 		wp_register_script('jquery_easing', content_url().'/plugins/wp-supersized/js/jquery.easing.min.js',array('jquery'),self::supersized_jquery_easing_version);
-                
+		wp_register_script('jquery_easing_compatibility', content_url().'/plugins/wp-supersized/js/jquery.easing.compatibility.js',array('jquery'),self::supersized_jquery_easing_compatibility_version);
+		wp_register_script('jquery_animate_enhanced', content_url().'/plugins/wp-supersized/js/jquery.animate-enhanced.min.js',array('jquery'),self::supersized_jquery_animate_enhanced_version);
 }
 
     /*
@@ -86,12 +96,12 @@ include('admin_page.php');
         if ($custom_field_exists && $custom_field_exists != '' && (is_single() || is_page())) // use Supersized if the custom field SupersizedDir exists (only for pages or posts)
             return true; // This will then override other options
         
-        if($where['show_on_page']['everywhere'] == true)
+        if($where['show_on_page']['everywhere'])
             return true;
         
         if($where['show_in_page_id']['0'] !== '')
         {
-            foreach ($where['show_in_page_id'] as $pageindex => $pageid)
+            foreach ($where['show_in_page_id'] as $pageid)
             {
                 if (is_page($pageid))
                     return true;                    
@@ -101,9 +111,9 @@ include('admin_page.php');
         if($where['show_in_template'])
         {
         $condition= false;
-        foreach ($where['show_in_template'] as $i => $template_is_set)
+        foreach ($where['show_in_template'] as $template_is_set)
         {
-            if($template_is_set == true)
+            if($template_is_set)
             { 
                 $condition = true;}
         }
@@ -123,7 +133,7 @@ include('admin_page.php');
         
         if($where['show_in_post_id'][0] !== '')
         {
-            foreach ($where['show_in_post_id'] as $postindex => $postid)
+            foreach ($where['show_in_post_id'] as $postid)
             {
                 if (is_single($postid))
                     return true;                    
@@ -153,38 +163,47 @@ include('admin_page.php');
 	*
 	*/
 	public static function _Supersized_scripts() {
+            
+                                wp_enqueue_script('jquery');
+
 		  if (!is_admin() && self::is_chosen_page()) // conditional scripts enqueing - registering done in initialize
 	{
-        $options = get_option('wp-supersized_options');
-
-        $customXml = self::get_custom_dir($options['default_dir']); // to set up the right script for the slideshow selected in the xml file
-        if (self::is_xml_file($customXml)) { // checks if custom dir is an xml file
-            global $customOptions; // $customOptions set to global to avoid parsing the xml file by calling custom_options_from_xml() each time it is needed
-            if (isset($customOptions['slideshow'])) { // if custom option 'slideshow' from xml file is present
-                    $options['slideshow'] = $customOptions['slideshow'];  // replaces general option by corresponding custom option from xml file      
-            }
-        }
+            $options = self::get_custom_options();      
 
 			switch($options['slideshow'])
 			{
 			case 1:
-                                wp_enqueue_script('jquery');
                                 wp_enqueue_script('jquery_easing');
+                                wp_enqueue_script('jquery_easing_compatibility');
+                                wp_enqueue_script('jquery_animate_enhanced');
 				wp_enqueue_script('WPSupersized_standard');
-                                if($options['tray_visible']) wp_enqueue_script('WPSupersized_theme_visible_tray_js');
+                                if($options['tray_visible'] && $options['thumb_tray']) wp_enqueue_script('WPSupersized_theme_visible_tray_js');
                                     else wp_enqueue_script('WPSupersized_theme_js');
 				break;
 			case 2:
-				wp_enqueue_script('jquery');
 				wp_enqueue_script('WPSupersized_core');
 				break;
 			case 3:
-				wp_enqueue_script('jquery');
+                                wp_enqueue_script('jquery_animate_enhanced');
 				wp_enqueue_script('WPSupersized_flickr');
+				break;
+			case 4:
+                                wp_enqueue_script('jquery_animate_enhanced');
+				wp_enqueue_script('WPSupersized_picasa');
+				break;
+			case 5:
+                                wp_enqueue_script('jquery_animate_enhanced');
+                                wp_enqueue_script('WPSupersized_date');
+				wp_enqueue_script('WPSupersized_smugmug');
 				break;
 			
 			} 
 	}
+        elseif (is_admin()) { // for tabs in post/page admin metabox
+            wp_enqueue_script('jquery-ui-core');
+            wp_enqueue_script('jquery-ui-widget');
+            wp_enqueue_script('jquery-ui-tabs');
+        }
 }
 	/*
 	*
@@ -194,8 +213,8 @@ include('admin_page.php');
 	public static function _Supersized_styles() {
 		  if (!is_admin() && self::is_chosen_page()) // conditional css enqueing - registering done in initialize
 	{
-        $options = get_option('wp-supersized_options');
- 
+            $options = self::get_custom_options();
+            
         $customXml = self::get_custom_dir($options['default_dir']); // to set up the right style for the slideshow selected in the xml file
         if (self::is_xml_file($customXml)) { // checks if custom dir is an xml file
             global $customOptions; // $customOptions set to global to avoid parsing the xml file by calling custom_options_from_xml() each time it is needed
@@ -204,7 +223,8 @@ include('admin_page.php');
             $options['slideshow'] = $customOptions['slideshow'];  // replaces general option by corresponding custom option from xml file
                 }
         }
-			switch($options['slideshow'])
+
+                        switch($options['slideshow'])
 			{
 			case 1:
 				wp_enqueue_style('supersized');
@@ -216,7 +236,12 @@ include('admin_page.php');
 				break;
 			case 3:
 				wp_enqueue_style('supersized_flickr'); //uses the old css for flickr
-
+                                break;
+			case 4:
+				wp_enqueue_style('supersized_flickr'); //uses the old css for flickr for Picasa also
+                                break;
+			case 5:
+				wp_enqueue_style('supersized_flickr'); //uses the old css for flickr for Smugmug also
 				break;
 			
 			} 
@@ -231,18 +256,8 @@ include('admin_page.php');
 
 	if (!is_admin() && self::is_chosen_page())
         {
- 	$options = get_option('wp-supersized_options');
-        $options = self::convert_empty_options_to_zero($options);
-        $customXml = self::get_custom_dir($options['default_dir']);
-        if (self::is_xml_file($customXml)) { // checks if custom dir is an xml file
-            global $customOptions; // $customOptions set to global to avoid parsing the xml file by calling custom_options_from_xml() each time it is needed
-            if (is_array($customOptions) && count($customOptions) != 0) { // if custom options from xml file are present
-                foreach($customOptions as $key => $value) {
-                if ($options[$key] != $customOptions[$key])
-                    $options[$key] = $customOptions[$key];  // replaces general option by corresponding custom option from xml file
-                }
-            }
-        }
+            $options = self::get_custom_options();
+            $errorMsg = '';
         ?>
 	<!--
 	Supersized <?php echo self::supersized_version; ?> - Fullscreen Background jQuery Plugin
@@ -258,17 +273,17 @@ include('admin_page.php');
 			jQuery(document).ready(function($) {
 				$.supersized({
 				<?php
-				if ($options['slideshow'] !== '2') // Some options not needed for Single image mode
+				if ($options['slideshow'] !== 2) // Some options not needed for Single image mode
 				{
 				?>
-					slideshow               : <?php echo $options['slideshow']; ?>,
+					slideshow               : 1,
 					autoplay		: <?php echo $options['autoplay']; ?>,
                                 <?php
 				}
                                 ?>
 					start_slide             : <?php echo $options['start_slide']; ?>,
                                 <?php
-                                if ($options['slideshow'] !== '2') // Some options not needed for Single image mode
+                                if ($options['slideshow'] !== 2) // Some options not needed for Single image mode
                                 {
 				?>
 					random			: <?php echo $options['random']; ?>,
@@ -285,7 +300,7 @@ include('admin_page.php');
 				}
 				?>
 					image_protect		: <?php echo $options['image_protect']; ?>,
-					image_path		: '<?php echo content_url()?>/plugins/wp-supersized/<?php if($options['slideshow'] == '3') echo 'flickr_';?>img/',
+					image_path		: '<?php echo content_url()?>/plugins/wp-supersized/<?php if($options['slideshow'] >= '3') echo 'flickr_';?>img/',
 					min_width		: <?php echo $options['min_width']; ?>,
 					min_height		: <?php echo $options['min_height']; ?>,
 					vertical_center         : <?php echo $options['vertical_center']; ?>,
@@ -294,7 +309,7 @@ include('admin_page.php');
 					fit_portrait         	: <?php echo $options['fit_portrait']; ?>,
 					fit_landscape		: <?php echo $options['fit_landscape']; ?>,
 				<?php
-                                if ($options['slideshow'] !== '2') // Some options not needed for Single image mode
+                                if ($options['slideshow'] !== 2) // Some options not needed for Single image mode
 				{
                                 ?>
 					thumbnail_navigation    : <?php echo $options['thumbnail_navigation']; ?>,
@@ -303,22 +318,50 @@ include('admin_page.php');
 					slide_captions          : <?php echo $options['slide_captions']; ?>,  
                                 <?php
 				}
-                                if ($options['slideshow'] == '3') // Options for Flickr mode
+                                if ($options['slideshow'] == 3) // Options for Flickr mode
 				{
                                 ?>      source                  : <?php echo $options['flickr_source']; ?>,
                                         set                     : '<?php echo $options['flickr_set']; ?>',
                                         user                    : '<?php echo $options['flickr_user']; ?>',
                                         group                   : '<?php echo $options['flickr_group']; ?>',
-                                        tags                   : '<?php echo $options['flickr_tags']; ?>',
+                                        tags                    : '<?php echo $options['flickr_tags']; ?>',
                                         total_slides            : <?php echo $options['flickr_total_slides']; ?>,
                                         image_size              : '<?php echo $options['flickr_size']; ?>',
+                                        sort_by                 : <?php echo $options['flickr_sort_by']; ?>,
+                                        sort_direction          : <?php echo $options['flickr_sort_direction']; ?>,
                                         api_key                 : '<?php echo $options['flickr_api_key']; ?>'
 				<?php
 				}
-                                if ($options['slideshow'] !== '3') // Options not needed for old Flickr mode
+                                if ($options['slideshow'] == 4) // Options for Picasa mode
+				{
+                                ?>      source                  : <?php echo $options['picasa_source']; ?>,
+                                        album                   : '<?php echo $options['picasa_album']; ?>',
+                                        user                    : '<?php echo $options['picasa_user']; ?>',
+                                        tags                    : '<?php echo $options['picasa_tags']; ?>',
+                                        total_slides            : <?php echo $options['picasa_total_slides']; ?>,
+                                        image_size              : '<?php echo $options['picasa_image_size']; ?>',
+                                        sort_by                 : <?php echo $options['picasa_sort_by']; ?>,
+                                        sort_direction          : <?php echo $options['picasa_sort_direction']; ?>,
+                                        auth_key                : '<?php echo $options['picasa_auth_key']; ?>'
+				<?php
+				}
+                                if ($options['slideshow'] == 5) // Options for Smugmug mode
+				{
+                                ?>      source                  : <?php echo $options['smugmug_source']; ?>,
+                                        keyword                 : '<?php echo $options['smugmug_keyword']; ?>',
+                                        user                    : '<?php echo $options['smugmug_user']; ?>',
+                                        gallery                 : '<?php echo $options['smugmug_gallery']; ?>',
+                                        category                : '<?php echo $options['smugmug_category']; ?>',
+                                        total_slides            : <?php echo $options['smugmug_total_slides']; ?>,
+                                        image_size              : '<?php echo $options['smugmug_image_size']; ?>',
+                                        sort_by                 : <?php echo $options['smugmug_sort_by']; ?>,
+                                        sort_direction          : <?php echo $options['smugmug_sort_direction']; ?>,
+				<?php
+				}                                
+                                if ($options['slideshow'] < 3) // Options not needed for Flickr, Picasa, or Smugmug modes
                                 {
 				?>
-					slides                  :  [<?php self::slides_list(); //outputs the list of slides in the correct format
+					slides                  :  [<?php $errorMsg = self::slides_list(); //outputs the list of slides in the correct format
                                 ?>],
                                         slide_links             : '<?php echo $options['slide_links']; ?>',
                                         progress_bar		: <?php echo $options['progress_bar']; ?>,						
@@ -327,7 +370,7 @@ include('admin_page.php');
 		    });
 		</script>
             <?php
-
+        echo $errorMsg;
                                 }
 }		
    /*
@@ -338,20 +381,9 @@ include('admin_page.php');
       public static function addFooterCode() {
 	if (!is_admin() && self::is_chosen_page()) // only on the right pages
         {
-            $options = get_option('wp-supersized_options');
-            $options = self::convert_empty_options_to_zero($options);
-                  
-            $customXml = self::get_custom_dir($options['default_dir']);
-            if (self::is_xml_file($customXml)) { // checks if custom dir is an xml file
-                global $customOptions; // $customOptions set to global to avoid parsing the xml file by calling custom_options_from_xml() each time it is needed
-                if (is_array($customOptions) && count($customOptions) != 0) { // if custom options from xml file are present
-                foreach($customOptions as $key => $value) {
-                    if ($options[$key] != $customOptions[$key]) 
-                        $options[$key] = $customOptions[$key];  // replaces general option by corresponding custom option from xml file
-                    }
-                }
-            }
-                        if ($options['navigation'] && $options['slideshow'] == '3') { // only for old flickr look
+            $options = self::get_custom_options();      
+            
+            if ($options['navigation'] && $options['slideshow'] >= 3) { // only for old flickr look (also for Picasa and Smugmug mode)
                         ?> 
                         	<!--Thumbnail Navigation-->
 	<div id="prevthumb"></div> <div id="nextthumb"></div>
@@ -389,7 +421,8 @@ include('admin_page.php');
                         } // end of the old flickr part
                         
 			else {
-                            if ($options['navigation'] && $options['slideshow'] == '1') // to get rid of all navigation if switched off or when in Single image mode
+                            global $totalSlides; // total number of slides in the file, used for the display (or not) of the navigation
+                            if ($options['navigation'] && $options['slideshow'] == '1' && $totalSlides > 1) // to get rid of all navigation if switched off or when in Single image mode
                             {
                         ?>
                         <!--Thumbnail Navigation-->
@@ -397,7 +430,7 @@ include('admin_page.php');
                         <div id="nextthumb"></div>
                         <?php
                         }
-                                if ($options['navigation_controls'] && $options['slideshow'] == '1') // If true, show navigation arrows
+                                if ($options['navigation_controls'] && $options['slideshow'] == '1' && $totalSlides > 1) // If true, show navigation arrows
                         {
                         ?>
 			<!-- Arrow Navigation -->
@@ -405,7 +438,7 @@ include('admin_page.php');
                         <a id="nextslide" class="load-item"></a>
                         <?php
                         }
-                        if ($options['navigation'] && $options['slideshow'] == '1') // to get rid of all navigation if switched off or when in Single image mode
+                        if ($options['navigation'] && $options['slideshow'] == '1' && $totalSlides > 1) // to get rid of all navigation if switched off or when in Single image mode
 			{
                         ?>
 
@@ -456,7 +489,7 @@ include('admin_page.php');
 			<div id="slidecaption"></div>
                         <?php
                         }
-                        if ($options['navigation'] && $options['slideshow'] == '1') // to get rid of all navigation if switched off or when in Single image mode
+                        if ($options['navigation'] && $options['slideshow'] == '1' && $totalSlides > 1) // to get rid of all navigation if switched off or when in Single image mode
 			{                
                                 if ($options['thumb_tray']) // If true, show thumb tray button
 			{
@@ -483,7 +516,8 @@ include('admin_page.php');
 	/*
 	*
 	* Reads and outputs the list of slides
-	*
+	* Returns error message $errorMsg
+        * 
 	*/
 	
         public static function slides_list()
@@ -549,13 +583,17 @@ include('admin_page.php');
         }
         
         if ($options['debugging_mode']) {
-        echo '/*'."\n";
-        echo 'site_url = '.site_url()."\n";
-        echo 'home_url = '.home_url()."\n";
-        echo 'full_dir = '.$full_dir."\n".'dir = '.$dir."\n".'thumbs_dir = '.$thumbs_dir."\n".'dirArray = ';
-        print_r($dirArray);
-        echo "\n".'*/'."\n"; //debugging mode
+            $nl = "\n";
+            $errorMsg = '<!-- WP Supersized debugging info'.$nl;
+            $errorMsg .= 'site_url = '.site_url().$nl;
+            $errorMsg .= 'home_url = '.home_url().$nl;
+           $errorMsg .= 'full_dir = '.$full_dir.$nl;
+           $errorMsg .= 'dir = '.$dir.$nl;
+           $errorMsg .= 'thumbs_dir = '.$thumbs_dir.$nl;
+           $errorMsg .= 'dirArray = '.serialize($dirArray).$nl;
+           $errorMsg .= '-->'.$nl;
         }
+        else $errorMsg ='';
         
         if (file_exists($thumbs_dir) && !self::is_empty_dir($thumbs_dir)) {
             $thumbsdirArray = array_merge((array)glob($thumbs_dir."*.jpg"),(array)glob($thumbs_dir."*.JPG"),(array)glob($thumbs_dir."*.png"),(array)glob($thumbs_dir."*.PNG"),(array)glob($thumbs_dir."*.gif"),(array)glob($thumbs_dir."*.GIF"),(array)glob($thumbs_dir."*.jpeg"),(array)glob($thumbs_dir."*.JPEG")); // $thumbsdirArray = glob($thumbs_dir."*.{jpg,JPG,png,PNG,gif,GIF,jpeg,JPEG}",GLOB_BRACE);
@@ -580,6 +618,8 @@ include('admin_page.php');
 				
 				if ($indexCount >= 1 && $dir) // only show the slides if there is at least 1 and there is a dir containing images
 				{
+                                        global $totalSlides;
+                                        $totalSlides = $indexCount;
 					for($index=0; $index < $indexCount-1; $index++) {
 						$iptc_caption = self::_show_iptc_caption($dirArray[$index]);
 						$converted_caption = self::asciitothmlcode($iptc_caption);
@@ -598,7 +638,9 @@ include('admin_page.php');
 				}
 				else // otherwise show the original Supersized examples
 					echo "\n{image : 'http://buildinternet.s3.amazonaws.com/projects/supersized/3.1/slides/quietchaos-kitty.jpg', title : 'Quiet Chaos by Kitty Gallannaugh', url : 'http://www.nonsensesociety.com/2010/12/kitty-gallannaugh/'},\n{image : 'http://buildinternet.s3.amazonaws.com/projects/supersized/3.1/slides/wanderers-kitty.jpg', title : 'Wanderers by Kitty Gallannaugh', url : 'http://www.nonsensesociety.com/2010/12/kitty-gallannaugh/'}";
-	}
+	
+        return $errorMsg; // returns a debugging message (if debugging mode selected, otherwise $errorMsg is empty)
+        }
           
          /*
          *
@@ -641,6 +683,8 @@ include('admin_page.php');
         // loops through the array of files and prints them all
                 if ($indexCount >= 1) // only show the slides if there is at least 1
                 {
+                        global $totalSlides;
+                        $totalSlides = $indexCount;
                         for($index=0; $index < $indexCount-1; $index++) {
                             echo "\n{image : '" . $xmlArray[$index]->slide_link . "', title : '".$xmlArray[$index]->title."', thumb : '".$xmlArray[$index]->thumb_link."', url : '" . $xmlArray[$index]->url . "'},";
                                 }				
@@ -654,18 +698,19 @@ include('admin_page.php');
          * 
          * custom_options_from_xml($customXml)
          * Gets the custom options from the xml file $customXml
-         * Returns the array $customOptions
+         * Returns the array $optionsFromXml
          */
         
         public static function custom_options_from_xml($customXml) {
             
-//            $xml_file = content_url().'/'.$customXml;
             $xml_file = WP_CONTENT_DIR.'/'.$customXml;
             $xml = simplexml_load_file($xml_file);
             $optionsXml = $xml->xpath('//options');
             $optionsFromXml = array();
+            $keyToConvert = array ('autoplay', 'random', 'new_window', 'pause_hover', 'keyboard_nav', 'image_protect', 'vertical_center', 'horizontal_center', 'fit_portrait', 'fit_landscape', 'navigation', 'thumbnail_navigation', 'navigation_controls', 'slide_counter', 'slide_captions', 'stop_loop', 'fit_always', 'thumb_links', 'progress_bar', 'mouse_scrub', 'thumb_tray', 'reset_options', 'debugging_mode', 'tray_visible');
             foreach($optionsXml[0] as $key => $value) {
-                $optionsFromXml[$key] = (int) $value; // converts the object $value into a integer
+                if (in_array($key, $keyToConvert)) $optionsFromXml[$key] = (int) $value; //makes sure that on/off (1/0) values are correctly returned
+                else $optionsFromXml[$key] = $value;
             }
             return $optionsFromXml;
         }
@@ -683,10 +728,10 @@ include('admin_page.php');
 		global $post; // $wp_query;
 		$postid = $post->ID; //$wp_query->post->ID;
 		$custom_dir = get_post_meta($postid, 'SupersizedDir', true); // gets custom field outside of the loop
-                
+
                 $full_custom_dir = self::build_wpcontent_dir().'/'.$custom_dir;
                 $full_default_dir = self::build_wpcontent_dir().'/'.$default_dir;
-                
+
                 if (self::is_xml_file($custom_dir) && file_exists($full_custom_dir) && (is_single() || is_page())) // checks if custom dir is an xml file
                 return $custom_dir;
 
@@ -703,10 +748,22 @@ include('admin_page.php');
                 if (substr($custom_dir,0,12) == 'ngg-gallery_' && substr($custom_dir,12) != '' && (is_single() || is_page())) { // use a NextGEN gallery if it was selected as default in the options.
                     return $custom_dir;
                 }
-                $options = get_option('wp-supersized_options');
-                if ($options['debugging_mode']) {
-                    echo "\n".'/*'."\n".'custom_dir = '.$custom_dir."\n".'full_custom_dir = '.$full_custom_dir."\n".'full_default_dir = '.$full_default_dir."\n".'content_url = '.content_url()."\n".' */'."\n"; //debugging mode
+                
+                if ($custom_dir == 'flickr' && (is_single() || is_page())) { // use Flickr if selected
+                    $custom_dir = 'flickr';
+                    return $custom_dir;
                 }
+
+                if ($custom_dir == 'picasa' && (is_single() || is_page())) { // use Flickr if selected
+                    $custom_dir = 'picasa';
+                    return $custom_dir;
+                }
+
+                if ($custom_dir == 'smugmug' && (is_single() || is_page())) { // use Flickr if selected
+                    $custom_dir = 'smugmug';
+                    return $custom_dir;
+                }
+                
                 if ($custom_dir && (!is_dir($full_custom_dir) || !file_exists($full_custom_dir)) && (is_single() || is_page()))
                     return 'not_found_error'; // if the directory does not exist, return an error
                 if ($custom_dir && (!is_readable($full_custom_dir)) && (is_single() || is_page()))
@@ -719,6 +776,88 @@ include('admin_page.php');
                 return $default_dir; // if no other choice, return default dir
 	}
 
+        /*
+         * 
+         * get_custom_options()
+         * Gets the custom options for an XML file, Flickr, Picasa or Smugmug when they are defined on a page/post
+         * Returns array $options
+         * 
+         */
+        
+        public static function get_custom_options() {
+            $options = get_option('wp-supersized_options');
+            $customDir = self::get_custom_dir($options['default_dir']);
+            global $wp_query;
+            $postid = $wp_query->post->ID;
+
+            if ($customDir == '') return $options; // if there is no custom slideshow defined for this page/post, do not go further
+
+            // if a non-default source of images has been defined in the post or page, then use the corresponding slideshow mode. To make sure that the custom field-defined source of image is used, even when the slideshow mode is not the default.
+            if (self::is_xml_file($customDir)) { // checks if custom dir is an xml file
+                global $customOptions; // $customOptions set to global to avoid parsing the xml file by calling custom_options_from_xml() each time it is needed
+                 if (is_array($customOptions) && count($customOptions) != 0) { // if custom options from xml file are present
+                    foreach($customOptions as $key => $value) {
+                    if ($options[$key] != $customOptions[$key])
+                        $options[$key] = $customOptions[$key];  // replaces general option by corresponding custom option from xml file
+                    }
+                }
+                $options['slideshow'] = $customOptions['slideshow'];
+                return $options;
+            }
+            if ($customDir == 'wp-gallery' || $customDir == 'ngg-gallery') {
+                $options['slideshow'] = 1;
+                return $options;
+            }
+            if ($customDir == 'flickr') {
+                $flickrOptionsString = get_post_meta($postid, 'SupersizedFlickrOptions', true); // gets custom field outside of the loop
+                $flickrOptions = explode('#SZ#',$flickrOptionsString);
+                $options['flickr_source'] = $flickrOptions[0];
+                $options['flickr_set'] = $flickrOptions[1];
+                $options['flickr_user'] = $flickrOptions[2];
+                $options['flickr_group'] = $flickrOptions[3];
+                $options['flickr_tags'] = $flickrOptions[4];
+                $options['flickr_total_slides'] = $flickrOptions[5];
+                $options['flickr_size'] = $flickrOptions[6];
+                $options['flickr_sort_by'] = $flickrOptions[7];
+                $options['flickr_sort_direction'] = $flickrOptions[8];
+                $options['flickr_api_key'] = $flickrOptions[9];
+                $options['slideshow'] = 3;
+                return $options;
+            }
+            if ($customDir == 'picasa') {
+                $picasaOptionsString = get_post_meta($postid, 'SupersizedPicasaOptions', true); // gets custom field outside of the loop
+                $picasaOptions = explode('#SZ#',$picasaOptionsString);
+                $options['picasa_source'] = $picasaOptions[0];
+                $options['picasa_album'] = $picasaOptions[1];
+                $options['picasa_user'] = $picasaOptions[2];
+                $options['picasa_tags'] = $picasaOptions[3];
+                $options['picasa_total_slides'] = $picasaOptions[4];
+                $options['picasa_image_size'] = $picasaOptions[5];
+                $options['picasa_sort_by'] = $picasaOptions[6];
+                $options['picasa_sort_direction'] = $picasaOptions[7];
+                $options['picasa_auth_key'] = $picasaOptions[8];
+                $options['slideshow'] = 4;
+                return $options;
+            }
+            if ($customDir == 'smugmug') {
+                $smugmugOptionsString = get_post_meta($postid, 'SupersizedSmugmugOptions', true); // gets custom field outside of the loop
+                $smugmugOptions = explode('#SZ#',$smugmugOptionsString);
+                $options['smugmug_source'] = $smugmugOptions[0];
+                $options['smugmug_keyword'] = $smugmugOptions[1];
+                $options['smugmug_user'] = $smugmugOptions[2];
+                $options['smugmug_gallery'] = $smugmugOptions[3];
+                $options['smugmug_category'] = $smugmugOptions[4];
+                $options['smugmug_total_slides'] = $smugmugOptions[5];
+                $options['smugmug_image_size'] = $smugmugOptions[6];
+                $options['smugmug_sort_by'] = $smugmugOptions[7];
+                $options['smugmug_sort_direction'] = $smugmugOptions[8];
+                $options['slideshow'] = 5;
+                return $options;
+            }
+            $options['slideshow'] = 1;
+            return $options; // if none of the above options is selected, then it is a custom folder that needs to be used.
+        }
+        
         /*
          * 
          * build_wpcontent_dir()
@@ -766,6 +905,8 @@ include('admin_page.php');
 		'post_mime_type' => 'image',
                                 ));
 	if($images) {
+                global $totalSlides;
+                $totalSlides = count($images);
                 $images = self::sort_wpgallery_array($images); // sorts the images according to the menu order defined in Wordpress Media Gallery
             
 		foreach($images as $image) {
@@ -806,6 +947,8 @@ include('admin_page.php');
             $imagesList = nggdb::get_gallery($nggGallery_ID, 'sortorder', 'ASC'); // calls the NextGen Gallery function to retrieve the content of the NextGen gallery with ID $nggGallery_ID. Images are sorted in ascending order of Sort Order.
 
             if($imagesList) {            // if there are images in the gallery
+                global $totalSlides;
+                $totalSlides = count($imagesList);
 		foreach($imagesList as $image) {
 			$ngggallery_url   = $image->imageURL; // full link to the full size image
 			$ngggallery_thumburl = $image->thumbURL; // full link to the thumbnail
@@ -835,33 +978,9 @@ include('admin_page.php');
         
         public static function is_xml_file($dir)
         {
-        if (substr($dir, strlen($dir)-4,4) == '.xml') // checks if dir is an xml file
+        if (substr($dir, strlen($dir)-4,4) == '.xml') // very basic check for dir = xml file
             return true;
         else return false;
-        }
-
-        /*
-         *
-         * convert_empty_options_to_zero($options) 
-         * Converts empty values of options to 0 and false to 1
-         * Returns $options with correct 0 or 1 values
-         * 
-         */
-        
-        public static function convert_empty_options_to_zero($options) {
-            
-        foreach($options as $key => $value) {
-            switch($value)
-            {
-               case 'true': // replaces true by 1
-                  $options[$key] = '1';
-                  break;
-               case '': // and false by 0
-                  $options[$key] = '0';
-                  break;
-            }
-        }
-        return $options;
         }
         
          /*
@@ -925,8 +1044,6 @@ include('admin_page.php');
          */
         
         public static function sort_wpgallery_array($arrImages) {
-
-        $arrKeys = array_keys($arrImages); // Get array keys representing attached image numbers
  
         // Put all image objects into new array with standard numeric keys (new array only needed while we sort the keys)
         foreach($arrImages as $oImage) {
@@ -949,164 +1066,141 @@ include('admin_page.php');
 	/*
 	*
 	* Installation - Sets the options defaults
-        * Done only once at activation
+    * Done only once at activation
 	*
 	*/
 	public static function install () {
-        $previous_options = get_option('wp-supersized_options');
-        if ($previous_options['reset_options'] || !is_array($previous_options)) { // if reset or fresh install
-	$newoptions['slideshow'] = '1';
-	$newoptions['autoplay'] = 'true';
-	$newoptions['start_slide'] = '1';
-	$newoptions['random'] = '';
-	$newoptions['slide_interval'] = '3000';
-	$newoptions['transition'] = '1';
-	$newoptions['transition_speed'] = '500';
-	$newoptions['new_window'] = 'true';
-	$newoptions['pause_hover'] = '';
-	$newoptions['keyboard_nav'] = 'true';
-	$newoptions['performance'] = '1';
-	$newoptions['image_protect'] = '';
-	$newoptions['min_width'] = '0';
-	$newoptions['min_height'] = '0';
-	$newoptions['vertical_center'] = 'true';
-	$newoptions['horizontal_center'] = 'true';
-	$newoptions['fit_portrait'] = 'true';
-	$newoptions['fit_landscape'] = '';
-	$newoptions['navigation'] = 'true';
-        $newoptions['background_url'] = ''; // new option for version 1.2
-	$newoptions['thumbnail_navigation'] = '';
-	$newoptions['navigation_controls'] = 'true';
-	$newoptions['slide_counter'] = 'true';
-	$newoptions['slide_captions'] = 'true';
-	$newoptions['flickr_source'] = '3';
-	$newoptions['flickr_set'] = '';
-	$newoptions['flickr_user'] = '';
-	$newoptions['flickr_group'] = '';
-        $newoptions['flickr_tags'] = ''; // new option for version 1.1.1
-	$newoptions['flickr_total_slides'] = '100';
-	$newoptions['flickr_size'] = 'z';
-	$newoptions['flickr_api_key'] = '';
-	$newoptions['show_on_page'] = array(
-            'allposts' => '',
-            'homepage' => '',
-            'allpages' => '',
-            'front_only' => '',
-            'sticky_post' => '',
-            '404_page' => '',
-            'search_results' => '', // new option for version 1.2
-            'category_archive' => '', // new option for version 1.1
-            'tag_archive' => '', // new option for version 1.1
-            'only_custom' => '', // new option for version 1.1 NOW DEPRECATED
-            'any_archive' => '', // new option for version 1.2
-            'date_archive' => '', // new option for version 1.2
-            'everywhere' => '' // new option for version 1.2
-            );
+            
+        $convertedOptions = $optionsToConvert = get_option('wp-supersized_options');
+
+        if(empty($optionsToConvert['already_converted']) && !empty($optionsToConvert)) { // will only be done once if there are existing old options
+        //Since version 3.1.2, on/off values are 1/0 instead of true/'' (false). The following makes sure that the options are correctly converted when updating from previous versions.
+        $keyToConvert = array ('autoplay', 'random', 'new_window', 'pause_hover', 'keyboard_nav', 'image_protect', 'vertical_center', 'horizontal_center', 'fit_portrait', 'fit_landscape', 'navigation', 'thumbnail_navigation', 'navigation_controls', 'slide_counter', 'slide_captions', 'stop_loop', 'fit_always', 'thumb_links', 'progress_bar', 'mouse_scrub', 'thumb_tray', 'reset_options', 'debugging_mode', 'tray_visible');
+        foreach($keyToConvert as $key) {
+            $convertedOptions[$key] = ($optionsToConvert[$key] == 'true' || $optionsToConvert[$key] == '1' || $optionsToConvert[$key] == 1) ? 1 : 0;
+        }
+        foreach($optionsToConvert['show_on_page'] as $pageType => $condition) {
+            $convertedOptions['show_on_page'][$pageType] = ($condition == 'true' || $condition == '1' || $condition == 1) ? 1 : 0;
+        }
+        if (isset($optionsToConvert['show_in_template'])) {
+            foreach ($optionsToConvert['show_in_template'] as $templateID => $condition)
+            {
+              $convertedOptions['show_in_template'][$templateID] = ($condition == 'true' || $condition == '1' || $condition == 1) ? 1 : 0;                      
+            }
+        }
+        $convertedOptions['already_converted'] = 1;
+        update_option('wp-supersized_options', $convertedOptions); // saves the converted options
+        //End conversion
+        }
+        
+        $newoptions = $previous_options = get_option('wp-supersized_options');
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || empty($previous_options)) { // if reset or fresh install
+	// options for version 1.0
+                $newoptions['slideshow'] = '1';
+		$newoptions['autoplay'] = 1;
+                $newoptions['start_slide'] = '1';
+		$newoptions['random'] = 0;
+		$newoptions['slide_interval'] = '3000';
+		$newoptions['transition'] = '1';
+		$newoptions['transition_speed'] = '500';
+		$newoptions['new_window'] = 1;
+		$newoptions['pause_hover'] = 0;
+		$newoptions['keyboard_nav'] = 1;
+		$newoptions['performance'] = '1';
+		$newoptions['image_protect'] = 0;
+		$newoptions['min_width'] = '0';
+		$newoptions['min_height'] = '0';
+		$newoptions['vertical_center'] = 1;
+		$newoptions['horizontal_center'] = 1;
+		$newoptions['fit_portrait'] = 1;
+		$newoptions['fit_landscape'] = 0;
+		$newoptions['navigation'] = 1;
+		$newoptions['thumbnail_navigation'] = 0;
+		$newoptions['navigation_controls'] = 1;
+		$newoptions['slide_counter'] = 1;
+		$newoptions['slide_captions'] = 1;
+		$newoptions['flickr_source'] = '3';
+		$newoptions['flickr_set'] = '';
+		$newoptions['flickr_user'] = '';
+		$newoptions['flickr_group'] = '';
+		$newoptions['flickr_total_slides'] = '100';
+		$newoptions['flickr_size'] = 'z';
+		$newoptions['flickr_api_key'] = '';
+		$newoptions['show_in_page_id'] = array('0' => '');
+		$newoptions['show_in_post_id'] = array('0' => '');       
+		$newoptions['show_on_page'] = array('allposts' => 0, 'homepage' => 0, 'allpages' => 0, 'front_only' => 0, 'sticky_post' => 0, '404_page' => 0);
         $newoptions['templates_list'] = get_page_templates();
         foreach ($newoptions['templates_list'] as $templateID => $templatefilename)
             {
-              $newoptions['show_in_template'][$templateID] = '';                      
+              $newoptions['show_in_template'][$templateID] = 0;                      
             }
-	$newoptions['show_in_page_id'] = array('0' => '');
-	$newoptions['show_in_post_id'] = array('0' => '');
-        $newoptions['show_in_category_id'] = array('0' => ''); // new option for version 1.1
-        $newoptions['show_in_tag_id'] = array('0' => ''); // new option for version 1.1
-        $newoptions['stop_loop'] = ''; //new option for version 1.1
-        $newoptions['fit_always'] = ''; //new option for version 1.1
-        $newoptions['slide_links'] = 'blank'; //new option for version 1.1
-        $newoptions['thumb_links'] = 'true'; //new option for version 1.1
-        $newoptions['thumbnail_suffix'] = '-1'; //new option for version 1.1
-        $newoptions['progress_bar'] = 'true'; //new option for version 1.1
-        $newoptions['mouse_scrub'] = ''; //new option for version 1.1
-        $newoptions['thumb_tray'] = 'true'; //new option for version 1.1
-        $newoptions['default_dir'] = 'supersized-slides'; //new option for version 1.1
-        $newoptions['debugging_mode'] = ''; //new option for version 1.3
-        $newoptions['reset_options'] = ''; //new option for version 1.1
-        $newoptions['tray_visible'] = ''; //new option for version 3.1
         }
-        elseif (is_array($previous_options) && !array_key_exists('default_dir', $previous_options)) { // if options already set for previous version, sets defaults for new options only
-            foreach ($previous_options as $option_key => $option_value) // keep the previous options
-            {
-                $newoptions[$option_key] = $previous_options[$option_key];
-            }     
-        
-        $newoptions['show_on_page'] = array(
-            'category_archive' => '', // new option for version 1.1
-            'tag_archive' => '', // new option for version 1.1
-            'only_custom' => '', // new option for version 1.1 NOW DEPRECATED
-            'search_results' => '', // new option for version 1.2
-            'any_archive' => '', // new option for version 1.2
-            'date_archive' => '', // new option for version 1.2
-            'everywhere' => '' // new option for version 1.2
-            );
-        $newoptions['show_in_category_id'] = array('0' => ''); // new option for version 1.1
-        $newoptions['show_in_tag_id'] = array('0' => ''); // new option for version 1.1
-        $newoptions['stop_loop'] = ''; //new option for version 1.1
-        $newoptions['fit_always'] = ''; //new option for version 1.1
-        $newoptions['slide_links'] = 'blank'; //new option for version 1.1
-        $newoptions['thumb_links'] = ''; //new option for version 1.1
-        $newoptions['thumbnail_suffix'] = '-1'; //new option for version 1.1
-        $newoptions['progress_bar'] = 'true'; //new option for version 1.1
-        $newoptions['mouse_scrub'] = ''; //new option for version 1.1
-        $newoptions['thumb_tray'] = 'true'; //new option for version 1.1
-        $newoptions['default_dir'] = 'supersized-slides'; //new option for version 1.1
-        $newoptions['debugging_mode'] = ''; //new option for version 1.3
-        $newoptions['reset_options'] = ''; //new option for version 1.1
-        
-        $newoptions['flickr_tags'] = ''; // new option for version 1.1.1
-        $newoptions['background_url'] = ''; // new option for version 1.2
-        $newoptions['tray_visible'] = ''; //new option for version 3.1
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('default_dir', $previous_options)) || empty($previous_options)) { // if options already set for previous version, sets defaults for new options only    
+        // new options for version 1.1
+                $newoptions['show_on_page']['category_archive'] = 0;
+                $newoptions['show_on_page']['tag_archive'] = 0;
+                $newoptions['show_on_page']['only_custom'] = 0; // NOW DEPRECATED
+                $newoptions['show_in_category_id'] = array('0' => '');
+                $newoptions['show_in_tag_id'] = array('0' => '');
+                $newoptions['stop_loop'] = 0;
+                $newoptions['fit_always'] = 0;
+                $newoptions['slide_links'] = 'blank';
+                $newoptions['thumb_links'] = 1;
+                $newoptions['thumbnail_suffix'] = '-1';
+                $newoptions['progress_bar'] = 1;
+                $newoptions['mouse_scrub'] = 0;
+                $newoptions['thumb_tray'] = 1;
+                $newoptions['default_dir'] = 'supersized-slides';
+                $newoptions['reset_options'] = 0;
         }
-        elseif (is_array($previous_options) && !array_key_exists('flickr_tags', $previous_options)) {
-                foreach ($previous_options as $option_key => $option_value) // keep the previous options
-            {
-                $newoptions[$option_key] = $previous_options[$option_key];
-            }   
-            $newoptions['flickr_tags'] = ''; // new option for version 1.1.1
-            $newoptions['show_on_page']['search_results'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['everywhere'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['any_archive'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['date_archive'] = ''; // new option for version 1.2
-            $newoptions['background_url'] = ''; // new option for version 1.2
-            $newoptions['debugging_mode'] = ''; //new option for version 1.3
-            $newoptions['tray_visible'] = ''; //new option for version 3.1
-          
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('flickr_tags', $previous_options)) || empty($previous_options)) {
+        // new option for version 1.1.1
+                $newoptions['flickr_tags'] = '';             
         }
-        elseif (is_array($previous_options) && !array_key_exists('everywhere', $previous_options)) {
-                foreach ($previous_options as $option_key => $option_value) // keep the previous options
-            {
-                $newoptions[$option_key] = $previous_options[$option_key];
-            }   
-            $newoptions['show_on_page']['everywhere'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['search_results'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['any_archive'] = ''; // new option for version 1.2
-            $newoptions['show_on_page']['date_archive'] = ''; // new option for version 1.2
-            $newoptions['background_url'] = ''; // new option for version 1.2
-            $newoptions['debugging_mode'] = ''; //new option for version 1.3
-            $newoptions['tray_visible'] = ''; //new option for version 3.1
-            
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('background_url', $previous_options)) || empty($previous_options)) {
+	// new options for version 1.2
+                $newoptions['show_on_page']['everywhere'] = 0;
+		$newoptions['show_on_page']['search_results'] = 0;
+		$newoptions['show_on_page']['any_archive'] = 0;
+		$newoptions['show_on_page']['date_archive'] = 0;
+		$newoptions['background_url'] = '';
+        }        
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('debugging_mode', $previous_options)) || empty($previous_options)) {
+        //new option for version 1.3
+                $newoptions['debugging_mode'] = 0;             
+        }        
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('tray_visible', $previous_options)) || empty($previous_options)) {
+        //new option for version 3.0.2
+            $newoptions['tray_visible'] = 0; 
         }
-        
-        elseif (is_array($previous_options) && !array_key_exists('debugging_mode', $previous_options)) {
-                foreach ($previous_options as $option_key => $option_value) // keep the previous options
-            {
-                $newoptions[$option_key] = $previous_options[$option_key];
-            }   
-            $newoptions['debugging_mode'] = ''; //new option for version 1.3
-            $newoptions['tray_visible'] = ''; //new option for version 3.1
-            
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('picasa_source', $previous_options)) || empty($previous_options)) {
+        //new options for version 3.1
+                $newoptions['picasa_source'] = '1'; 
+                $newoptions['picasa_album'] = ''; 
+                $newoptions['picasa_user'] = ''; 
+                $newoptions['picasa_tags'] = ''; 
+                $newoptions['picasa_total_slides'] = '100'; 
+                $newoptions['picasa_image_size'] = '1024'; 
+                $newoptions['picasa_sort_by'] = '1'; 
+                $newoptions['picasa_sort_direction'] = '0'; 
+                $newoptions['picasa_auth_key'] = ''; 
+                $newoptions['smugmug_source'] = '3'; 
+                $newoptions['smugmug_keyword'] = ''; 
+                $newoptions['smugmug_user'] = ''; 
+                $newoptions['smugmug_gallery'] = ''; 
+                $newoptions['smugmug_category'] = ''; 
+                $newoptions['smugmug_total_slides'] = '100'; 
+                $newoptions['smugmug_image_size'] = '3'; 
+                $newoptions['smugmug_sort_by'] = '1'; 
+                $newoptions['smugmug_sort_direction'] = '0'; 
+                $newoptions['flickr_sort_by'] = '1'; 
+                $newoptions['flickr_sort_direction'] = '0';
+        }        
+        if ( (isset($previous_options['reset_options']) && $previous_options['reset_options']) || (is_array($previous_options) && !array_key_exists('already_converted', $previous_options)) || empty($previous_options)) {
+        //checks update to new options format in version 3.1.2
+            $newoptions['already_converted'] = 1; 
         }
-        
-        elseif (is_array($previous_options) && !array_key_exists('tray_visible', $previous_options)) {
-                foreach ($previous_options as $option_key => $option_value) // keep the previous options
-            {
-                $newoptions[$option_key] = $previous_options[$option_key];
-            }   
-            $newoptions['tray_visible'] = ''; //new option for version 3.1
-            
-        }
-        
-        else return; // do not modify the existing options
+//        else return; // do not modify the existing options
 
 	update_option('wp-supersized_options', $newoptions); // Sets defaults for options
 }
@@ -1255,313 +1349,6 @@ public static function post_is_in_descendant_category( $cats, $_post = null )
     }
     return false;
 }
-
-}
-endif;
-
-/**
-* class WPSupersized_Test
-*
-* Basic version testing (at installation).
-*/
-if ( !class_exists('WPSupersized_Test') ):
-class WPSupersized_Test
-{
-   /**
-   * min_php_version
-   *
-   * Test that your PHP version is at least that of the $min_php_version.
-   * @param $min_php_version   string   representing the minimum required version of PHP, e.g. '5.3.2'
-   * @param $plugin_name    string   Name of the plugin for messaging purposes.
-   * @return none      Exit with messaging if PHP version is too old.
-   */
-   static function min_php_version($min_php_version, $plugin_name) {
-   
-      $exit_msg = "The $plugin_name plugin requires PHP $min_php_version or newer. Contact your system administrator about updating your version of PHP";
-         
-      if (version_compare( phpversion(),$min_php_version,'<'))
-      {
-          exit ($exit_msg);
-      }
-   }
-    /**
-	* Checks that the current version of WordPress is current enough.
-	*
-	* @return none exit on fail.
-	*/
-   static function min_wordpress_version($min_wordpress_version, $plugin_name) {
-		global $wp_version;
-		$exit_msg = __("The $plugin_name plugin requires WordPress $min_wordpress_version or newer.
-<a href='http://codex.wordpress.org/Upgrading_WordPress'>Please update!</a>");
-         
-      if (version_compare($wp_version,$min_wordpress_version,'<'))
-      {
-          exit ($exit_msg);
-      }
-   }
-}
-endif;
-
-/**
-* class WPSupersized_Metabox
-*
-* Takes care of the metabox for WP Supersized options in the page/post admin.
- * 
-*/
-
-if ( !class_exists('WPSupersized_Metabox') ):
-class WPSupersized_Metabox
-{
-    private $displaySupersizedDir;
-   /*
-   * custom_meta_box
-   *
-   * Creates a custom meta box in the page/post admin to allow the user to select which source of images he/she wants to use
-   * 
-   */
-   function custom_meta_box() {
-       $postType = array ('post', 'page');
-       foreach ($postType as $type) {
-        add_meta_box(  
-            'wpsupersized_custom_meta_box', // $id  
-            'WP Supersized source of images', // $title  
-            array('WPSupersized_Metabox','generate_metabox_content'), // $callback  
-            $type, // $page  
-            'normal', // $context  
-            'high'); // $priority   
-       }
-   }
-   
-    /*
-    *
-    * generate_metabox_content()
-    * 
-    * Generates the WP Supersized metabox content
-    *  
-    */
-   
-   function generate_metabox_content() {
-
-    $testDir = new WPSupersized_Metabox(); // $testDir is initialized as a class-limited global variable
-    global $post;
-    wp_nonce_field(basename(__FILE__), 'custom_meta_box_nonce');
-    
-    $supersizedDir = get_post_meta($post->ID, 'SupersizedDir', true);
-    $testDir->displaySupersizedDir = $supersizedDir;
-    if (strtolower($supersizedDir) == 'wp-gallery' || strtolower($supersizedDir) == 'wpgallery' || strtolower($supersizedDir) == 'wp_gallery') $supersizedDir = 'wp-gallery';
-    if (strtolower($supersizedDir) == 'ngg-gallery' || strtolower($supersizedDir) == 'ngggallery' || strtolower($supersizedDir) == 'ngg_gallery') $supersizedDir = 'ngg-gallery';
-    $supersizedNextGenGallery = get_post_meta($post->ID, 'SupersizedNextGenGallery', true);    
-    echo '<table class="form-table">';
-    echo '<tr><th><label for="SupersizedSource">Origin of WP Supersized images</label></th><td>';
-    echo '<input type="radio" name="SZSource" id="SZSource" value="none" ',$supersizedDir == '' ? ' checked="checked"' : '',' /> <label for"SupersizedDir">None (leaves the general options intact. This page/post will have a background slideshow only if you defined it in the <a href="'.get_admin_url().'/options-general.php?page=wp-supersized&tab=origin">WP Supersized options</a>).</label><br />';  
-    echo '<input type="radio" name="SZSource" id="SZSource" value="custom" ',$supersizedDir != 'wp-gallery' && $supersizedDir != 'ngg-gallery' && $supersizedDir !='' && !WPSupersized::is_xml_file($supersizedDir) ? ' checked="checked"' : '',' /> <label for"SupersizedDir">Custom directory (select your custom directory below)</label><br />';  
-    echo '<input type="radio" name="SZSource" id="SZSource" value="wp-gallery" ',$supersizedDir == 'wp-gallery' ? ' checked="checked"' : '',' /> <label for"SupersizedDir">WP Media Gallery (images from the WP Media gallery attached to this page/post will be used)</label><br />';  
-    echo '<input type="radio" name="SZSource" id="SZSource" value="ngg-gallery" ',$supersizedDir == 'ngg-gallery' ? ' checked="checked"' : '',' /> <label for"SupersizedDir">NextGEN Gallery (images from the NextGEN gallery that you choose below will be used)</label><br />';  
-    echo '<input type="radio" name="SZSource" id="SZSource" value="xml" ', WPSupersized::is_xml_file($supersizedDir) == true ? ' checked="checked"' : '',' /> <label for"SupersizedDir">XML file (enter below the path to your xml file)</label><br />';  
-    echo '</td></tr>';
-        
-    echo '<tr><th><label for="SupersizedCustomDir">XML file path<br />(within wp-content)</label></th><td>';
-    if (!WPSupersized::is_xml_file($supersizedDir)) $testDir->displaySupersizedDir = '';
-    echo '<input type="text" name="SupersizedCustomDir" id="SupersizedCustomDir" value="'.$testDir->displaySupersizedDir.'" size="50" />';
-    echo '<br /><span class="description">Enter here your XML file path (e.g. my_wpsupersized_slides_definitions/my_slides_list_and_options.xml).</span>';
-    echo '</td></tr>';
-    
-    echo '<tr><th><label for="SupersizedNextGenGallery">NextGEN gallery to use</label></th><td>';
-    if (is_plugin_active('nextgen-gallery/nggallery.php') && method_exists('nggdb','find_all_galleries')) {
-        echo '<select name="SupersizedNextGenGallery" id="SupersizedNextGenGallery">';
-        global $nggdb;
-        $nggGalleries = $nggdb->find_all_galleries();
-        if($supersizedDir != 'ngg-gallery') $testDir->displayNggSelection = 'none';
-        else $testDir->displayNggSelection = $supersizedNextGenGallery;
-        if ($supersizedDir != 'ngg-gallery') echo '<option selected="selected" value="">none</option>';
-        foreach ($nggGalleries as $gallery )
-        {
-            echo '<option', $testDir->displayNggSelection == $gallery->gid ? ' selected="selected"' : '', ' value="'.$gallery->gid.'">'.$gallery->name.'</option>';
-        }
-        echo '</select><br /><span class="description">Select here the NextGEN gallery that you want to use.</span>';
-    }
-    else echo '<span class="description">NextGEN Gallery does not seem to be installed.</span>';
-    echo '</td></tr>';
-    echo '<tr><th><label for ="ListFolders">Select your custom directory. Click on folder name to show contained folders.</label></th><td>';
-    $wpContentFolder = WP_CONTENT_DIR;
-    if($supersizedDir != 'wp-gallery' && $supersizedDir != 'ngg-gallery' && $supersizedDir !='' && !WPSupersized::is_xml_file($supersizedDir))
-        echo '<span class="description">Your currently selected custom directory is: '.content_url().'/'.$supersizedDir.'</span>';
-    $listFolders = self::directory_list($wpContentFolder,false,true,'.|..|.svn|cache|plugins|upgrade|themes|languages',true);
-    echo '<ul>';
-    self::display_array($listFolders, $supersizedDir);
-    echo '</ul>';
-    echo '</td></tr>';
-    echo '</table>'; // end table
-    
-    self::output_script();
-   }
-
-    /*
-    *
-    * save_custom_meta($post_id)
-    * 
-    * Saves the data in the custom field
-    *  
-    */
-   
-   function save_custom_meta($post_id, $post) {
-
-       if (!wp_verify_nonce($_POST['custom_meta_box_nonce'], basename(__FILE__)))  
-        return $post_id;  
-    // check autosave  
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)  
-        return $post_id;  
-    // check permissions  
-    $post_type = get_post_type_object($post->post_type);
-    if ('page' == $post_type || 'post' == $post_type) {  
-        if (!current_user_can('edit_page', $post_id))  
-            return $post_id;  
-        } elseif (!current_user_can('edit_post', $post_id)) {  
-            return $post_id;  
-    }  
-  
-    // save the data   
-        $newSZSource = $_POST['SZSource'];
-        $oldSupersizedDir = get_post_meta($post_id, 'SupersizedDir', true);
-        switch ($newSZSource) {
-            case 'none' :       $newSupersizedDir ='';
-                                break;
-            case 'custom' :     if(!WPSupersized::is_xml_file(trim($_POST['SupersizedCustomDir'],' /'))) {
-                                    $newSupersizedDir = trim($_POST['SupersizedCustomDir'],' /'); // removes any space or slash at the beginning or end of the path
-                                }
-                                else $newSupersizedDir = '';
-                                break;
-            case 'wp-gallery' : $newSupersizedDir = 'wp-gallery';
-                                break;
-            case 'ngg-gallery' : $newSupersizedDir = 'ngg-gallery';
-                                 break;
-            case 'xml' :        if(WPSupersized::is_xml_file(trim($_POST['SupersizedCustomDir'],' /'))) {
-                                    $newSupersizedDir = trim($_POST['SupersizedCustomDir'],' /'); // removes any space or slash at the beginning or end of the path
-                                }
-                                else $newSupersizedDir = '';
-        }
-
-        if ($newSupersizedDir != $oldSupersizedDir) {  
-            update_post_meta($post_id, 'SupersizedDir', $newSupersizedDir);  
-        }
-
-        $newSupersizedNextGenGallery = $_POST['SupersizedNextGenGallery'];
-        $oldSupersizedNextGenGallery = get_post_meta($post_id, 'SupersizedNextGenGallery', true);
-        if ($newSupersizedNextGenGallery && $newSupersizedNextGenGallery != $oldSupersizedNextGenGallery) {  
-            update_post_meta($post_id, 'SupersizedNextGenGallery', $newSupersizedNextGenGallery);  
-        } elseif ('' == $newSupersizedNextGenGallery && $oldSupersizedNextGenGallery) {  
-            delete_post_meta($post_id, 'SupersizedNextGenGallery', $oldSupersizedNextGenGallery);  
-        }       
-   }
-   
-    /*
-    * 
-    * display_array($listFolders, $customFolder)
-    * recursive display of directories contained in the array $listFolders
-    * 
-    */
-   
-   function display_array($listFolders, $customFolder) {
-       foreach($listFolders as $key => $value) {
-           if(is_array($value[0]) && !empty($value[0])) {
-               echo '<li class="wpsztoggle"><div class="wpszbutton" style="display:inline;">'.$key.'</div>';
-               echo ' <input type="radio" name="SupersizedCustomDir" value="'.$value[1].'"';
-               	if($customFolder == $value[1] ){ echo ' checked="checked" '; }
-               echo '></input>';
-               echo '</li><ul>';
-               self::display_array($value[0], $customFolder);
-               echo '</ul>';
-           }
-           else {
-               echo '<li>'.$key.' <input type="radio" name="SupersizedCustomDir" value="'.$value[1].'"';
-               	if($customFolder == $value[1] ){ echo ' checked="checked" '; }
-               echo '></input> ';
-           }
-           echo '</li>';
-       }
-   }
-   
-    /*
-    * directory_list($directory_base_path, $filter_dir = false, $filter_files = false, $exclude = ".|..|.DS_Store|.svn", $recursive = true)
-    * returns an array containing optionally all files, only directiories or only files at a file system path
-    * @author     cgray The Metamedia Corporation www.metamedia.us
-    *
-    * @param    $base_path         string    either absolute or relative path
-    * @param    $filter_dir        boolean    Filter directories from result (ignored except in last directory if $recursive is true)
-    * @param    $filter_files    boolean    Filter files from result
-    * @param    $exclude        string    Pipe delimited string of files to always ignore
-    * @param    $recursive        boolean    Descend directory to the bottom?
-    * @return    $result_list    array    Nested array or false
-    * @access public
-    * @license    GPL v3
-    */
-    function directory_list($directory_base_path, $filter_dir = false, $filter_files = false, $exclude = ".|..|.DS_Store|.svn", $recursive = true){
-    $directory_base_path = rtrim($directory_base_path, "/") . "/";
-
-    if (!is_dir($directory_base_path)){
-        error_log(__FUNCTION__ . "File at: $directory_base_path is not a directory.");
-        return false;
-    }
-
-    $result_list = array();
-    $exclude_array = explode("|", $exclude);
-
-    if (!$folder_handle = opendir($directory_base_path)) {
-//        error_log(__FUNCTION__ . "Could not open directory at: $directory_base_path");
-        return false;
-    }else{
-        while(false !== ($filename = readdir($folder_handle))) {
-            if(!in_array($filename, $exclude_array)) {
-                if(is_dir($directory_base_path . $filename . "/")) {
-                    if($recursive && strcmp($filename, ".")!=0 && strcmp($filename, "..")!=0 ){ // prevent infinite recursion
-//                        error_log($directory_base_path . $filename . "/");
-                        $result_list[$filename] = array(self::directory_list("$directory_base_path$filename/", $filter_dir, $filter_files, $exclude, $recursive), ltrim(str_replace(WP_CONTENT_DIR, '',$directory_base_path.$filename),'/'));
-                    }elseif(!$filter_dir){
-                        $result_list[] = array($filename, $directory_base_path.$filename);
-                    }
-                }elseif(!$filter_files){
-                    $result_list[] = array($filename, $directory_base_path.$filename);
-                }
-            }
-        }
-        closedir($folder_handle);
-        return $result_list;
-    }    
-}
-
-    /*
-    * Displays the folder list with interactive folder opening and content display
-    * Acts on the div with id wp-supersized-folder-list
-    * (adapted from http://www.lateralcode.com/directory-trees-with-php-and-jquery/)
-    */
-     function output_script() {
-    echo '<script type="text/javascript">
-jQuery(function () {
-  jQuery("li.wpsztoggle").next().hide();
-  jQuery("li.wpsztoggle").hover(function () {
-    jQuery(this).stop().animate({
-      fontSize: "17px",
-      paddingLeft: "10px",
-      color: "black"
-    }, 100);
-  }, function () {
-    jQuery(this).stop().animate({
-      fontSize: "14px",
-      paddingLeft: "0",
-      color: "#808080"
-    }, 100);
-  });
-  jQuery("li.wpsztoggle").css("cursor", "pointer");
-  jQuery("li.wpsztoggle > div.wpszbutton").prepend("+ ");
-  jQuery("div.wpszbutton").click(function () {
-    jQuery(this).parent().next().toggle(300);
-    var v = jQuery(this).html().substring(0, 1);
-    if (v == "+") jQuery(this).html("-" + jQuery(this).html().substring(1));
-    else if (v == "-") jQuery(this).html("+" + jQuery(this).html().substring(1));
-  });
-});</script>';
-    // end of script
- }
 
 }
 endif;
